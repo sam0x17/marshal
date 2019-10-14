@@ -5,7 +5,8 @@ module Marshal
       case name
       \{% for var in @type.instance_vars %}
         when :\{{var}}
-          @\{{var}} = value.unsafe_as(typeof(@\{{var}}))
+          puts "about to unsafely cast #{value} (#{typeof(value)}) to #{\{{var.type}}}"
+          @\{{var}} = value.unsafe_as(\{{var.type}})
       \{% end %}
       else
         raise "invalid name"
@@ -35,13 +36,16 @@ module Marshal
       \{% elsif @type.ancestors.includes?(Value) %}
         obj = StaticArray(UInt8, sizeof(\{{@type}})).new(0)
         sizeof(\{{@type}}).times { |i| obj[i] = data[i] }
-        puts "sizeof: #{sizeof(\{{@type}})}, data.size: #{data.size}"
-        return obj.unsafe_as(\{{@type}})
+        puts "type: #{\{{@type}}} sizeof: #{sizeof(\{{@type}})}, data.size: #{data.size}, data: #{data}"
+        obj = obj.unsafe_as(\{{@type}})
+        pp! obj
+        return obj
       \{% else %}
-        obj = StaticArray(UInt8, sizeof(\{{@type}})).new(0).unsafe_as(\{{@type}})
+        obj = StaticArray(UInt8, instance_sizeof(\{{@type}})).new(0).unsafe_as(\{{@type}})
         cursor = 0
         \{% for var in @type.instance_vars %}
-          child = typeof(obj.@\{{var}}).unpack_bytes(data[cursor..sizeof(typeof(obj.@\{{var}}))])
+          child = typeof(obj.@\{{var}}).unpack_bytes(data[cursor..(cursor + sizeof(typeof(obj.@\{{var}})) - 1)])
+          puts "about to force_write #{child}"
           obj.force_write!(:\{{var}}, child)
           cursor += sizeof(typeof(obj.@\{{var}}))
         \{% end %}
@@ -54,6 +58,8 @@ end
 abstract class Object
   include Marshal
 end
+
+
 
 class Foo  
   def initialize(@something : Int32, @something_else : Int64, @thing : Int32, @thing2 : Int32, @str : String)
@@ -77,15 +83,6 @@ module Dumper(T)
 end
 
 obj = Foo.new(31, 33_i64, 13, 17, "hey this is a really really long string ok it is long so yeah and it definitely could not fit in this tiny thing")
-#`pp! obj
-#bytes = Dumper(Foo).dump_object(obj)
-#pp! bytes
-#duplicate = Dumper(Foo).from_dump(bytes)
-#pp! duplicate
 
-pp! obj
-obj.force_write!(:something, 348)
-pp! obj
-
-#puts obj.pack_bytes
-#puts "|#{Foo.unpack_bytes(obj.pack_bytes)}|"
+puts obj.pack_bytes
+puts "|#{Foo.unpack_bytes(obj.pack_bytes)}|"
