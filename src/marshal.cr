@@ -1,5 +1,5 @@
 class Foo  
-  def initialize(@something : Int32, @something_else : Int64, @thing : Int32, @thing2 : Int32, @str : String)
+  def initialize(@something : Int32, @something_else : Int64, @thing : Int32, @thing2 : Int32)
   end
 end
 
@@ -36,27 +36,27 @@ module Marshal
       \{% else %}
         mem = IO::Memory.new
         \{% for var in @type.instance_vars %}
-          mem.write(obj.@\{{var}}.marshal_pack)
+          mem.write(@\{{var}}.marshal_pack)
         \{% end %}
         mem.to_slice
       \{% end %}
     end
 
     def self.marshal_unpack(bytes : Bytes)
-      \{% if @type == Nil %}
-        return nil
-      \{% elsif @type.ancestors.includes?(Value) %}
+      \{% if @type.ancestors.includes?(Value) %}
         ptr = StaticArray(UInt8, sizeof(\{{@type}})).new(0)
         bytes.each_with_index { |byte, i| ptr[i] = byte }
         ptr.unsafe_as(\{{@type}})
       \{% else %}
-        obj = Pointer(Uint8).malloc(safe_sizeof(\{{@type}})).unsafe_as(\{{@type}})
-        cursor = 0
+        obj = Pointer(UInt8).malloc(safe_sizeof(\{{@type}})).unsafe_as(\{{@type}})
+        mem = IO::Memory.new(bytes)
         \{% for var in @type.instance_vars %}
-          value = \{{var.type}}.marshal_unpack(bytes[cursor..(cursor + safe_sizeof(\{{var.type}}))])
+          slice = Bytes.new(safe_sizeof(\{{var.type}}))
+          mem.read(slice)
+          value = \{{var.type}}.marshal_unpack(slice)
           obj.force_write!(:\{{var}}, value)
-          cursor += safe_sizeof(\{{var.type}})
         \{% end %}
+        obj
       \{% end %}
     end
   end
@@ -66,10 +66,14 @@ abstract class Object
   include Marshal
 end
 
-obj = Foo.new(31, 33_i64, 13, 17, "hey this is a really really long string ok it is long so yeah and it definitely could not fit in this tiny thing")
+obj = Foo.new(31, 33_i64, 13, 17)
 
 pp! 3.marshal_pack
 pp! Int32.marshal_unpack(3.marshal_pack)
 pp! 37987_i64.marshal_pack
-#pp! Marshal(String).pack("hello this is a very long string so yeah")
-#pp!(obj = Marshal(Foo).pack(obj))
+pp! "hello this is a very long string so yeah".marshal_pack
+pp! obj
+obj_packed = obj.marshal_pack
+pp! obj_packed
+obj_unpacked = Foo.marshal_unpack(obj_packed)
+pp! obj_unpacked
