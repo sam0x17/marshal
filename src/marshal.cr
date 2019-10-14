@@ -26,33 +26,43 @@ abstract class Object
 end
 
 module Marshal(T)
+  macro safe_sizeof(type)
+    {% if type.resolve.ancestors.includes?(Value) %}
+      sizeof({{type}})
+    {% else %}
+      instance_sizeof({{type}})
+    {% end %}
+  end
+
   def self.unpack(bytes : Bytes)
     return nil if T == Nil
     if T.is_a?(Value)
-      ptr = Pointer(UInt8).malloc(sizeof(T))
+      ptr = Pointer(UInt8).malloc(safe_sizeof(T))
       bytes.each_with_index { |byte, i| ptr[i] = byte }
       ptr.unsafe_as(T)
     else
-      obj = Pointer(UInt8).malloc(instance_sizeof(T)).unsafe_as(T)
+      obj = Pointer(UInt8).malloc(safe_sizeof(T)).unsafe_as(T)
       cursor = 0
       {% for var in T.instance_vars %}
-        value = {{var.type}}.unpack_bytes(bytes[cursor..(cursor + sizeof({{var.type}}) - 1)])
+        puts "yay"
+        value = {{var.type}}.unpack_bytes(bytes[cursor..(cursor + safe_sizeof({{var.type}}))])
         obj.force_write!(:{{var}}, value)
-        cursor += sizeof(typeof(obj.@{{var}}))
+        cursor += safe_sizeof({{var.type}})
       {% end %}
     end
   end
 
   def self.pack(obj)
-    return Bytes.new(0) if sizeof(T) == 0
+    return Bytes.new(0) if safe_sizeof(T) == 0
     if T.is_a?(Value)
-      data = Bytes.new(sizeof(T))
+      data = Bytes.new(safe_sizeof(T))
       ptr = obj.unsafe_as(StaticArray(UInt8, sizeof(T)))
-      sizeof(T).times { |i| data[i] = ptr[i] }
+      safe_sizeof(T).times { |i| data[i] = ptr[i] }
       data
     else
       mem = IO::Memory.new
       {% for var in T.instance_vars %}
+        puts "yay"
         mem.write(Marshal({{var.type}}).pack(obj.@{{var}}))
       {% end %}
       mem.to_slice
@@ -65,5 +75,5 @@ obj = Foo.new(31, 33_i64, 13, 17, "hey this is a really really long string ok it
 pp! Marshal(Int32).pack(127)
 pp! Marshal(Int32).unpack(Marshal(Int32).pack(127))
 pp! Marshal(Int64).pack(37987_i64)
-pp! Marshal(String).pack("hello this is a very long string so yeah")
-pp!(obj = Marshal(Foo).pack(obj))
+#pp! Marshal(String).pack("hello this is a very long string so yeah")
+#pp!(obj = Marshal(Foo).pack(obj))
