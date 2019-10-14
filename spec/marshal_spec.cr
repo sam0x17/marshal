@@ -1,6 +1,6 @@
 require "./spec_helper"
 
-describe Dumper do
+describe Marshal do
   # TODO: Write tests
 
   it "works" do

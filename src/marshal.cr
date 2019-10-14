@@ -1,6 +1,6 @@
-module FieldMapper
+module Marshal
   macro included
-    def to_raw_bytes
+    def to_packed_bytes
       \{% if @type.ancestors.includes?(Value) %}
         data = Bytes.new sizeof({{@type}})
         ptr = self.unsafe_as(StaticArray(UInt8, sizeof({{@type}})))
@@ -9,7 +9,7 @@ module FieldMapper
       \{% else %}
         mem = IO::Memory.new
         \{% for var in @type.instance_vars %}
-          mem.write(@\{{var}}.to_raw_bytes)
+          mem.write(@\{{var}}.to_packed_bytes)
         \{% end %}
         return mem.to_slice
       \{% end %}
@@ -18,7 +18,7 @@ module FieldMapper
 end
 
 abstract class Object
-  include FieldMapper
+  include Marshal
 end
 
 class Foo  
@@ -49,4 +49,4 @@ obj = Foo.new(31, 33_i64, 13, 17, "hey this is a really really long string ok it
 #duplicate = Dumper(Foo).from_dump(bytes)
 #pp! duplicate
 
-puts obj.to_raw_bytes
+puts obj.to_packed_bytes
