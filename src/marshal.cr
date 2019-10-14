@@ -1,4 +1,9 @@
-module Marshal
+class Foo  
+  def initialize(@something : Int32, @something_else : Int64, @thing : Int32, @thing2 : Int32, @str : String)
+  end
+end
+
+module ForceWriter
   macro included
     def force_write!(name : Symbol, value)
       \{% if true %}
@@ -9,63 +14,24 @@ module Marshal
           @\{{var}} = value.unsafe_as(\{{var.type}})
       \{% end %}
       else
-        raise "invalid name"
+        raise "invalid name #{name}"
       end
-      \{% end %}
-    end
-  
-    def pack_bytes
-      \{% if @type.ancestors.includes?(Value) %}
-        data = Bytes.new sizeof(\{{@type}})
-        ptr = self.unsafe_as(StaticArray(UInt8, sizeof(\{{@type}})))
-        sizeof(\{{@type}}).times { |i| data[i] = ptr[i] }
-        return data
-      \{% else %}
-        mem = IO::Memory.new
-        \{% for var in @type.instance_vars %}
-          mem.write(@\{{var}}.pack_bytes)
-        \{% end %}
-        return mem.to_slice
-      \{% end %}
-    end
-
-    def self.unpack_bytes(data : Bytes)
-      puts \{{@type}}
-      \{% if @type == Object %}
-        return Object.new
-      \{% elsif @type.ancestors.includes?(Value) %}
-        obj = StaticArray(UInt8, sizeof(\{{@type}})).new(0)
-        sizeof(\{{@type}}).times { |i| obj[i] = data[i] }
-        puts "type: #{\{{@type}}} sizeof: #{sizeof(\{{@type}})}, data.size: #{data.size}, data: #{data}"
-        obj = obj.unsafe_as(\{{@type}})
-        pp! obj
-        return obj
-      \{% else %}
-        obj = StaticArray(UInt8, instance_sizeof(\{{@type}})).new(0).unsafe_as(\{{@type}})
-        cursor = 0
-        \{% for var in @type.instance_vars %}
-          child = typeof(obj.@\{{var}}).unpack_bytes(data[cursor..(cursor + sizeof(typeof(obj.@\{{var}})) - 1)])
-          puts "about to force_write #{child}"
-          obj.force_write!(:\{{var}}, child)
-          cursor += sizeof(typeof(obj.@\{{var}}))
-        \{% end %}
-        return obj
       \{% end %}
     end
   end
 end
 
 abstract class Object
-  include Marshal
+  include ForceWriter
 end
 
-module Unpacker(T)
+module Marshal(T)
   def self.unpack(bytes : Bytes)
     return nil if T == Nil
     if T.is_a?(Value)
-      ptr = Pointer(UInt8).malloc(instance_sizeof(T))
+      ptr = Pointer(UInt8).malloc(sizeof(T))
       bytes.each_with_index { |byte, i| ptr[i] = byte }
-      ptr.as(T)
+      ptr.unsafe_as(T)
     else
       obj = Pointer(UInt8).malloc(instance_sizeof(T)).unsafe_as(T)
       cursor = 0
@@ -76,28 +42,28 @@ module Unpacker(T)
       {% end %}
     end
   end
-end
 
-class Foo  
-  def initialize(@something : Int32, @something_else : Int64, @thing : Int32, @thing2 : Int32, @str : String)
-  end
-end
-
-module Dumper(T)
-  def self.dump_object(obj) : Bytes
-    data = Bytes.new(instance_sizeof(T))
-    ptr = obj.as(UInt8*)
-    instance_sizeof(T).times { |i| data[i] = ptr[i] }
-    data
-  end
-
-  def self.from_dump(bytes : Bytes)
-    raise "invalid number of bytes" unless bytes.size == instance_sizeof(T)
-    ptr = Pointer(UInt8).malloc(instance_sizeof(T))
-    bytes.each_with_index { |byte, i| ptr[i] = byte }
-    ptr.as(T)
+  def self.pack(obj)
+    return Bytes.new(0) if sizeof(T) == 0
+    if T.is_a?(Value)
+      data = Bytes.new(sizeof(T))
+      ptr = obj.unsafe_as(StaticArray(UInt8, sizeof(T)))
+      sizeof(T).times { |i| data[i] = ptr[i] }
+      data
+    else
+      mem = IO::Memory.new
+      {% for var in T.instance_vars %}
+        mem.write(Marshal({{var.type}}).pack(obj.@{{var}}))
+      {% end %}
+      mem.to_slice
+    end
   end
 end
 
 obj = Foo.new(31, 33_i64, 13, 17, "hey this is a really really long string ok it is long so yeah and it definitely could not fit in this tiny thing")
 
+pp! Marshal(Int32).pack(127)
+pp! Marshal(Int32).unpack(Marshal(Int32).pack(127))
+pp! Marshal(Int64).pack(37987_i64)
+pp! Marshal(String).pack("hello this is a very long string so yeah")
+pp!(obj = Marshal(Foo).pack(obj))
