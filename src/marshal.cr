@@ -1,5 +1,18 @@
 module Marshal
   macro included
+    def force_write!(name : Symbol, value)
+      \{% if true %}
+      case name
+      \{% for var in @type.instance_vars %}
+        when :\{{var}}
+          @\{{var}} = value.unsafe_as(typeof(@\{{var}}))
+      \{% end %}
+      else
+        raise "invalid name"
+      end
+      \{% end %}
+    end
+  
     def pack_bytes
       \{% if @type.ancestors.includes?(Value) %}
         data = Bytes.new sizeof(\{{@type}})
@@ -29,7 +42,7 @@ module Marshal
         cursor = 0
         \{% for var in @type.instance_vars %}
           child = typeof(obj.@\{{var}}).unpack_bytes(data[cursor..sizeof(typeof(obj.@\{{var}}))])
-          obj.marshal_force_write_\{{var}} = child
+          obj.force_write!(:\{{var}}, child)
           cursor += sizeof(typeof(obj.@\{{var}}))
         \{% end %}
         return obj
@@ -70,7 +83,9 @@ obj = Foo.new(31, 33_i64, 13, 17, "hey this is a really really long string ok it
 #duplicate = Dumper(Foo).from_dump(bytes)
 #pp! duplicate
 
-obj.marshal_force_write_something = 32
+pp! obj
+obj.force_write!(:something, 348)
+pp! obj
 
 #puts obj.pack_bytes
 #puts "|#{Foo.unpack_bytes(obj.pack_bytes)}|"
