@@ -1,3 +1,26 @@
+module FieldMapper
+  macro included
+    def to_raw_bytes
+      \{% if @type.ancestors.includes?(Value) %}
+        data = Bytes.new sizeof({{@type}})
+        ptr = self.unsafe_as(StaticArray(UInt8, sizeof({{@type}})))
+        sizeof(typeof(self)).times { |i| data[i] = ptr[i] }
+        return data
+      \{% else %}
+        mem = IO::Memory.new
+        \{% for var in @type.instance_vars %}
+          mem.write(@\{{var}}.to_raw_bytes)
+        \{% end %}
+        return mem.to_slice
+      \{% end %}
+    end
+  end
+end
+
+abstract class Object
+  include FieldMapper
+end
+
 class Foo  
   def initialize(@something : Int32, @something_else : Int64, @thing : Int32, @thing2 : Int32, @str : String)
   end
@@ -20,8 +43,10 @@ module Dumper(T)
 end
 
 obj = Foo.new(31, 33_i64, 13, 17, "hey this is a really really long string ok it is long so yeah and it definitely could not fit in this tiny thing")
-pp! obj
-bytes = Dumper(Foo).dump_object(obj)
-pp! bytes
-duplicate = Dumper(Foo).from_dump(bytes)
-pp! duplicate
+#`pp! obj
+#bytes = Dumper(Foo).dump_object(obj)
+#pp! bytes
+#duplicate = Dumper(Foo).from_dump(bytes)
+#pp! duplicate
+
+puts obj.to_raw_bytes
