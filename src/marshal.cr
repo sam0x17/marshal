@@ -18,7 +18,6 @@ module Marshal
       case name
       \{% for var in @type.instance_vars %}
         when :\{{var}}
-          puts "about to unsafely cast #{value} (#{typeof(value)}) to #{\{{var.type}}}"
           @\{{var}} = value.unsafe_as(\{{var.type}})
       \{% end %}
       else
@@ -47,7 +46,7 @@ module Marshal
       \{% if @type == Nil %}
         return nil
       \{% elsif @type.ancestors.includes?(Value) %}
-        ptr = Pointer(UInt8).malloc(safe_sizeof(\{{@type}}))
+        ptr = StaticArray(UInt8, sizeof(\{{@type}})).new(0)
         bytes.each_with_index { |byte, i| ptr[i] = byte }
         ptr.unsafe_as(\{{@type}})
       \{% else %}
