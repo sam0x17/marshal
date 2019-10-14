@@ -89,20 +89,3 @@ end
 abstract class Object
   include Marshal
 end
-
-class Foo  
-  def initialize(@something : Int32, @something_else : Int64, @st : String, @thing : Int32, @thing2 : Int32)
-  end
-end
-
-obj = Foo.new(31, 33_i64, "hey this is a cool string so yeah", 13, 17)
-
-pp! 3.marshal_pack
-pp! Int32.marshal_unpack(3.marshal_pack)
-pp! 37987_i64.marshal_pack
-pp! "hello this is a very long string so yeah".marshal_pack
-pp! obj
-obj_packed = obj.marshal_pack
-pp! obj_packed
-obj_unpacked = Foo.marshal_unpack(obj_packed)
-pp! obj_unpacked
