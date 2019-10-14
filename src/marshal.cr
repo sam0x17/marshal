@@ -2,8 +2,8 @@ module Marshal
   macro included
     def pack_bytes
       \{% if @type.ancestors.includes?(Value) %}
-        data = Bytes.new sizeof({{@type}})
-        ptr = self.unsafe_as(StaticArray(UInt8, sizeof({{@type}})))
+        data = Bytes.new sizeof(\{{@type}})
+        ptr = self.unsafe_as(StaticArray(UInt8, sizeof(\{{@type}})))
         sizeof(typeof(self)).times { |i| data[i] = ptr[i] }
         return data
       \{% else %}
