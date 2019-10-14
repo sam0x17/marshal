@@ -4,7 +4,7 @@ module Marshal
       \{% if @type.ancestors.includes?(Value) %}
         data = Bytes.new sizeof(\{{@type}})
         ptr = self.unsafe_as(StaticArray(UInt8, sizeof(\{{@type}})))
-        sizeof(typeof(self)).times { |i| data[i] = ptr[i] }
+        sizeof(\{{@type}}).times { |i| data[i] = ptr[i] }
         return data
       \{% else %}
         mem = IO::Memory.new
@@ -12,6 +12,27 @@ module Marshal
           mem.write(@\{{var}}.pack_bytes)
         \{% end %}
         return mem.to_slice
+      \{% end %}
+    end
+
+    def self.unpack_bytes(data : Bytes)
+      puts \{{@type}}
+      \{% if @type == Object %}
+        return Object.new
+      \{% elsif @type.ancestors.includes?(Value) %}
+        obj = StaticArray(UInt8, sizeof(\{{@type}})).new(0)
+        sizeof(\{{@type}}).times { |i| obj[i] = data[i] }
+        puts "sizeof: #{sizeof(\{{@type}})}, data.size: #{data.size}"
+        return obj.unsafe_as(\{{@type}})
+      \{% else %}
+        obj = StaticArray(UInt8, sizeof(\{{@type}})).new(0).unsafe_as(\{{@type}})
+        cursor = 0
+        \{% for var in @type.instance_vars %}
+          child = typeof(obj.@\{{var}}).unpack_bytes(data[cursor..sizeof(typeof(obj.@\{{var}}))])
+          obj.marshal_force_write_\{{var}} = child
+          cursor += sizeof(typeof(obj.@\{{var}}))
+        \{% end %}
+        return obj
       \{% end %}
     end
   end
@@ -49,4 +70,7 @@ obj = Foo.new(31, 33_i64, 13, 17, "hey this is a really really long string ok it
 #duplicate = Dumper(Foo).from_dump(bytes)
 #pp! duplicate
 
-puts obj.pack_bytes
+obj.marshal_force_write_something = 32
+
+#puts obj.pack_bytes
+#puts "|#{Foo.unpack_bytes(obj.pack_bytes)}|"
