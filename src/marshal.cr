@@ -63,7 +63,7 @@ module Marshal(T)
       mem = IO::Memory.new
       {% for var in T.instance_vars %}
         puts "yay"
-        mem.write(Marshal({{var.type}}).pack(obj.@{{var}}))
+        mem.write(Marshal(\{{var.type}}).pack(obj.@{{var}}))
       {% end %}
       mem.to_slice
     end
