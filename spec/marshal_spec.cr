@@ -19,8 +19,8 @@ describe Marshal do
     end
 
     it "works with Bool" do
-      false.marshal_pack.bytesize.should eq sizeof(Bool)
-      true.marshal_pack.bytesize.should eq sizeof(Bool)
+      false.marshal_pack.bytesize.should eq 1
+      true.marshal_pack.bytesize.should eq 1
     end
 
     it "works with String" do
@@ -35,9 +35,36 @@ describe Marshal do
 
   describe "#marshal_unpack" do
     it "works with Int32" do
-      i = RAND.next_int
-      packed = i.marshal_pack
-      Int32.marshal_unpack(packed).should eq i
+      1000.times do
+        i = RAND.next_int
+        Int32.marshal_unpack(i.marshal_pack).should eq i
+      end
+    end
+
+    it "works with Int64" do
+      1000.times do
+        i = RAND.next_int.to_i64
+        Int64.marshal_unpack(i.marshal_pack).should eq i
+      end
+    end
+
+    it "works with Float32" do
+      1000.times do
+        i = RAND.next_float.to_f32
+        Float32.marshal_unpack(i.marshal_pack).should eq i
+      end
+    end
+
+    it "works with Float64" do
+      1000.times do
+        i = RAND.next_float
+        Float64.marshal_unpack(i.marshal_pack).should eq i
+      end
+    end
+
+    it "works with Bool" do
+      Bool.marshal_unpack(true.marshal_pack).should eq true
+      Bool.marshal_unpack(false.marshal_pack).should eq false
     end
   end
 end

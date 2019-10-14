@@ -9,19 +9,25 @@ end
 module MarshalValue
   macro included
     def raw_bytes
-      \{% if true %}
-      data = Bytes.new(sizeof(\{{@type}}))
-      ptr = self.unsafe_as(StaticArray(UInt8, sizeof(\{{@type}})))
-      sizeof(\{{@type}}).times { |i| data[i] = ptr[i] }
-      data
+      \{% if @type == Bool %}
+        return Bytes[0] if self == false
+        Bytes[1]
+      \{% else %}
+        data = Bytes.new(sizeof(\{{@type}}))
+        ptr = self.unsafe_as(StaticArray(UInt8, sizeof(\{{@type}})))
+        sizeof(\{{@type}}).times { |i| data[i] = ptr[i] }
+        data
       \{% end %}
     end
 
     def self.from_raw_bytes(bytes : Bytes)
-      \{% if true %}
-      ptr = StaticArray(UInt8, sizeof(\{{@type}})).new(0)
-      bytes.each_with_index { |byte, i| ptr[i] = byte }
-      ptr.unsafe_as(\{{@type}})
+      \{% if @type == Bool %}
+        return true if bytes == Bytes[1]
+        false
+      \{% else %}
+        ptr = StaticArray(UInt8, sizeof(\{{@type}})).new(0)
+        bytes.each_with_index { |byte, i| ptr[i] = byte }
+        ptr.unsafe_as(\{{@type}})
       \{% end %}
     end
   end
@@ -47,7 +53,6 @@ module Marshal
     end
 
     def marshal_pack
-      return Bytes.new(0) if safe_sizeof(\{{@type}}) == 0
       \{% if @type.ancestors.includes?(Value) %}
         self.raw_bytes
       \{% elsif @type == String %}
