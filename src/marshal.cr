@@ -1,5 +1,5 @@
 class Foo  
-  def initialize(@something : Int32, @something_else : Int64, @thing : Int32, @thing2 : Int32)
+  def initialize(@something : Int32, @something_else : Int64, @st : String, @thing : Int32, @thing2 : Int32)
   end
 end
 
@@ -33,6 +33,8 @@ module Marshal
         ptr = self.unsafe_as(StaticArray(UInt8, sizeof(\{{@type}})))
         safe_sizeof(\{{@type}}).times { |i| data[i] = ptr[i] }
         data
+      \{% elsif @type == String %}
+        self.to_slice.dup
       \{% else %}
         mem = IO::Memory.new
         \{% for var in @type.instance_vars %}
@@ -47,6 +49,8 @@ module Marshal
         ptr = StaticArray(UInt8, sizeof(\{{@type}})).new(0)
         bytes.each_with_index { |byte, i| ptr[i] = byte }
         ptr.unsafe_as(\{{@type}})
+      \{% elsif @type == String %}
+        String.new(bytes)
       \{% else %}
         obj = Pointer(UInt8).malloc(safe_sizeof(\{{@type}})).unsafe_as(\{{@type}})
         mem = IO::Memory.new(bytes)
@@ -66,7 +70,7 @@ abstract class Object
   include Marshal
 end
 
-obj = Foo.new(31, 33_i64, 13, 17)
+obj = Foo.new(31, 33_i64, "hey this is a cool string so yeah", 13, 17)
 
 pp! 3.marshal_pack
 pp! Int32.marshal_unpack(3.marshal_pack)
