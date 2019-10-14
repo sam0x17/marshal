@@ -1,6 +1,6 @@
 module Marshal
   macro included
-    def to_packed_bytes
+    def pack_bytes
       \{% if @type.ancestors.includes?(Value) %}
         data = Bytes.new sizeof({{@type}})
         ptr = self.unsafe_as(StaticArray(UInt8, sizeof({{@type}})))
@@ -9,7 +9,7 @@ module Marshal
       \{% else %}
         mem = IO::Memory.new
         \{% for var in @type.instance_vars %}
-          mem.write(@\{{var}}.to_packed_bytes)
+          mem.write(@\{{var}}.pack_bytes)
         \{% end %}
         return mem.to_slice
       \{% end %}
@@ -49,4 +49,4 @@ obj = Foo.new(31, 33_i64, 13, 17, "hey this is a really really long string ok it
 #duplicate = Dumper(Foo).from_dump(bytes)
 #pp! duplicate
 
-puts obj.to_packed_bytes
+puts obj.pack_bytes
