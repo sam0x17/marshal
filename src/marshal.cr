@@ -59,7 +59,24 @@ abstract class Object
   include Marshal
 end
 
-
+module Unpacker(T)
+  def self.unpack(bytes : Bytes)
+    return nil if T == Nil
+    if T.is_a?(Value)
+      ptr = Pointer(UInt8).malloc(instance_sizeof(T))
+      bytes.each_with_index { |byte, i| ptr[i] = byte }
+      ptr.as(T)
+    else
+      obj = Pointer(UInt8).malloc(instance_sizeof(T)).unsafe_as(T)
+      cursor = 0
+      {% for var in T.instance_vars %}
+        value = {{var.type}}.unpack_bytes(bytes[cursor..(cursor + sizeof({{var.type}}) - 1)])
+        obj.force_write!(:{{var}}, value)
+        cursor += sizeof(typeof(obj.@{{var}}))
+      {% end %}
+    end
+  end
+end
 
 class Foo  
   def initialize(@something : Int32, @something_else : Int64, @thing : Int32, @thing2 : Int32, @str : String)
@@ -84,5 +101,3 @@ end
 
 obj = Foo.new(31, 33_i64, 13, 17, "hey this is a really really long string ok it is long so yeah and it definitely could not fit in this tiny thing")
 
-puts obj.pack_bytes
-puts "|#{Foo.unpack_bytes(obj.pack_bytes)}|"
