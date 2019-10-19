@@ -1,4 +1,5 @@
 require "spec"
+require "json"
 require "../src/marshal"
 RAND = Random.new
 
