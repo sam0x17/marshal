@@ -74,5 +74,14 @@ describe Marshal do
     it "works with nil" do
       Nil.marshal_unpack(nil.marshal_pack).should eq nil
     end
+
+    it "works with arbitrary classes" do
+      unpacked = Foo.marshal_unpack(TEST_FOO.marshal_pack)
+      unpacked.bar1.should eq TEST_FOO.bar1
+      unpacked.bar2.should eq TEST_FOO.bar2
+      unpacked = unpacked.bar3
+      unpacked.foo1.should eq TEST_BAR.foo1
+      unpacked.foo2.should eq TEST_BAR.foo2
+    end
   end
 end
