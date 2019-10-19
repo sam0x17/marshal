@@ -31,6 +31,10 @@ describe Marshal do
     it "works with empty String" do
       "".marshal_pack.bytesize.should eq "".bytesize
     end
+
+    it "works with nil" do
+      nil.marshal_pack.bytesize.should eq 0
+    end
   end
 
   describe "#marshal_unpack" do
@@ -65,6 +69,10 @@ describe Marshal do
     it "works with Bool" do
       Bool.marshal_unpack(true.marshal_pack).should eq true
       Bool.marshal_unpack(false.marshal_pack).should eq false
+    end
+
+    it "works with nil" do
+      Nil.marshal_unpack(nil.marshal_pack).should eq nil
     end
   end
 end
