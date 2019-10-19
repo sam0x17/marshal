@@ -96,14 +96,18 @@ describe Marshal do
       Hash(String, String).marshal_unpack(hash.marshal_pack).should eq hash
     end
 
-    it "works on type unions" do
+    it "works on type unions if we are explicit about what they are" do
       100.times do
         val = union_val
-        pp! val
         packed = val.marshal_pack
-        pp! packed
-        unpacked = (Int32 | Int64 | Bool).marshal_unpack(val.marshal_pack)
-        pp! unpacked
+        klass = if val.is_a?(Int32)
+          Int32
+        elsif val.is_a?(Int64)
+          Int64
+        else
+          Bool
+        end
+        unpacked = klass.marshal_unpack(val.marshal_pack)
         unpacked.should eq val
       end
     end
