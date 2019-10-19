@@ -83,5 +83,13 @@ describe Marshal do
       unpacked.foo1.should eq TEST_BAR.foo1
       unpacked.foo2.should eq TEST_BAR.foo2
     end
+
+    it "works with arbitrary JSON::Any" do
+      json = JSON.parse(File.read("./spec/test.json"))
+      packed = json.marshal_pack
+      pp! packed
+      unpacked = JSON::Any.marshal_unpack(packed)
+      #pp! unpacked
+    end
   end
 end

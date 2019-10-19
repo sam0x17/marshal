@@ -53,7 +53,7 @@ module Marshal
     end
 
     def marshal_pack
-      \{% if @type.ancestors.includes?(Value) %}
+      \{% if @type.ancestors.includes?(Value) && @type.instance_vars.size == 0 %}
         self.raw_bytes
       \{% elsif @type == String %}
         self.to_slice
@@ -69,7 +69,7 @@ module Marshal
     end
 
     def self.marshal_unpack(bytes : Bytes)
-      \{% if @type.ancestors.includes?(Value) %}
+      \{% if @type.ancestors.includes?(Value) && @type.instance_vars.size == 0 %}
         \{{@type}}.from_raw_bytes(bytes)
       \{% elsif @type == String %}
         String.new(bytes)
