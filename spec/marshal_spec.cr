@@ -84,6 +84,18 @@ describe Marshal do
       unpacked.foo2.should eq TEST_BAR.foo2
     end
 
+    it "works on arrays" do
+      arr = [1, 3, 4, 7, 4, 2, 6]
+      Array(Int32).marshal_unpack(arr.marshal_pack).should eq arr
+    end
+
+    it "works on hashes" do
+      hash = Hash(String, String).new
+      hash["blah"] = "something"
+      hash["foo"] = "something else"
+      Hash(String, String).marshal_unpack(hash.marshal_pack).should eq hash
+    end
+
     pending "works with arbitrary JSON::Any" do
       json = JSON.parse(File.read("./spec/test.json"))
       packed = json.marshal_pack
