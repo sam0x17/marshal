@@ -96,6 +96,18 @@ describe Marshal do
       Hash(String, String).marshal_unpack(hash.marshal_pack).should eq hash
     end
 
+    it "works on type unions" do
+      100.times do
+        val = union_val
+        pp! val
+        packed = val.marshal_pack
+        pp! packed
+        unpacked = (Int32 | Int64 | Bool).marshal_unpack(val.marshal_pack)
+        pp! unpacked
+        unpacked.should eq val
+      end
+    end
+
     pending "works with arbitrary JSON::Any" do
       json = JSON.parse(File.read("./spec/test.json"))
       packed = json.marshal_pack

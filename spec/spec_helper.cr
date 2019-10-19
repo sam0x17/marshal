@@ -39,5 +39,9 @@ class Foo
   end
 end
 
+def union_val : Int32 | Int64 | Bool
+  [74, 63_i64, true].sample
+end
+
 TEST_BAR = Bar.new
 TEST_FOO = Foo.new(TEST_BAR)
