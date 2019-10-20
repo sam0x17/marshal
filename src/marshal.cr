@@ -1,3 +1,5 @@
+require "json"
+
 macro safe_sizeof(type)
   {% if type.resolve.ancestors.includes?(Value) %}
     sizeof({{type}})
@@ -25,9 +27,10 @@ module MarshalValue
         return true if bytes == Bytes[1]
         false
       \{% else %}
-        ptr = StaticArray(UInt8, sizeof(\{{@type}})).new(0)
+        obj = uninitialized \{{@type}}
+        ptr = pointerof(obj).as(Pointer(UInt8))
         bytes.each_with_index { |byte, i| ptr[i] = byte }
-        ptr.unsafe_as(\{{@type}})
+        obj
       \{% end %}
     end
   end
@@ -53,10 +56,14 @@ module Marshal
     end
 
     def marshal_pack
-      \{% if @type.ancestors.includes?(Value) && @type.instance_vars.size == 0 %}
+      \{% if @type == JSON::Any %}
+        return self.to_json.marshal_pack
+      \{% elsif @type.ancestors.includes?(Value) && @type.instance_vars.size == 0 %}
         self.raw_bytes
       \{% elsif @type == String %}
-        self.to_slice
+        mem = IO::Memory.new
+        mem.write(self.to_slice)
+        mem.to_slice
       \{% else %}
         mem = IO::Memory.new
         \{% for var in @type.instance_vars %}
@@ -69,7 +76,9 @@ module Marshal
     end
 
     def self.marshal_unpack(bytes : Bytes)
-      \{% if @type.ancestors.includes?(Value) && @type.instance_vars.size == 0 %}
+      \{% if @type == JSON::Any %}
+        JSON.parse(String.new(bytes))
+      \{% elsif @type.ancestors.includes?(Value) && @type.instance_vars.size == 0 %}
         \{{@type}}.from_raw_bytes(bytes)
       \{% elsif @type == String %}
         String.new(bytes)

@@ -112,7 +112,7 @@ describe Marshal do
       end
     end
 
-    pending "works with arbitrary JSON::Any" do
+    it "works with arbitrary JSON::Any" do
       json = JSON.parse(File.read("./spec/test.json"))
       packed = json.marshal_pack
       unpacked = JSON::Any.marshal_unpack(packed)
