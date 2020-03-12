@@ -1,39 +1,18 @@
 # marshal
 
-TODO: Write a description here
+The purpose of this shard is to provide easy-to-use marshaling of crystal objects
+without any work needed on the part of the programmer. There are no modules to
+include, simply `require "marshal"` and you can use `obj.marshal_pack` on any
+object to pack it into bytes and `Klass.marshal_unpack(bytes)` to unpack any
+object that was packed using the library.
 
-## Installation
+Marshal goes to great lengths to try to work out of the box for most types,
+but some types will cause it to fail. It is recommended that you write
+specs similar to those in the `marshal_spec.cr` file for whatever types
+you plan to use before using this.
 
-1. Add the dependency to your `shard.yml`:
+The shard is under development though the core API will never change. This
+is not production stable but with a few specs you can have confidence
+it will work in your particular scenario.
 
-   ```yaml
-   dependencies:
-     marshal:
-       github: your-github-user/marshal
-   ```
-
-2. Run `shards install`
-
-## Usage
-
-```crystal
-require "marshal"
-```
-
-TODO: Write usage instructions here
-
-## Development
-
-TODO: Write development instructions here
-
-## Contributing
-
-1. Fork it (<https://github.com/your-github-user/marshal/fork>)
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
-5. Create a new Pull Request
-
-## Contributors
-
-- [Sam Johnson](https://github.com/your-github-user) - creator and maintainer
+This is basically messagepack for the lazy.
